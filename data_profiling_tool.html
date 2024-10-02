@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Profiling Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .action-item {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .action-item.selected {
+            background: #e6f7ff;
+            border-color: #91d5ff;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background: #cccccc;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .result-section {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Digital Profiling Tool</h1>
+        <p>How do decisions made online and in real life influence the content that is targeted to you?<p>
+        <p>Select 5 things that you did today:</p>
+        <div id="actionsList" class="actions"></div>
+        <button id="analyzeBtn" disabled>Analyze My Digital Footprint</button>
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const actions = [
+            { text: "Searched for 'best laptops 2024'", data: ["Tech interest", "Purchase intent", "Product research behavior"], categories: ["tech", "shopping"] },
+            { text: "Added items to cart on an e-commerce site", data: ["Shopping habits", "Brand preferences", "Price sensitivity"], categories: ["shopping", "finance"] },
+            { text: "Used map app for directions", data: ["Location data", "Travel patterns", "Local interest"], categories: ["location", "lifestyle"] },
+            { text: "Liked and commented on social media posts", data: ["Social engagement", "Content preferences", "Influential power"], categories: ["social", "communication"] },
+            { text: "Streamed music on a popular platform", data: ["Music taste", "Mood indicators", "Cultural interests"], categories: ["entertainment", "culture"] },
+            { text: "Watched an online video", data: ["Visual content preferences", "Attention span", "Topic interests"], categories: ["entertainment", "education"] },
+            { text: "Read articles on a news site", data: ["Reading habits", "Political leanings", "Current event interest"], categories: ["news", "education"] },
+            { text: "Logged into a professional networking site", data: ["Career status", "Professional interests", "Networking behavior"], categories: ["professional", "social"] },
+            { text: "Checked and sent emails", data: ["Communication style", "Professional/Personal balance", "Response time"], categories: ["communication", "professional"] },
+            { text: "Used a messaging app", data: ["Social circle size", "Communication frequency", "Preferred chat platforms"], categories: ["communication", "social"] },
+            { text: "Ordered coffee via a mobile app", data: ["Daily routines", "Brand loyalty", "Spending habits"], categories: ["lifestyle", "finance"] },
+            { text: "Used a ride-sharing service", data: ["Transportation preferences", "Urban/Suburban lifestyle", "Time management"], categories: ["transport", "lifestyle"] },
+            { text: "Ordered food delivery online", data: ["Dietary preferences", "Convenience priorities", "Local business engagement"], categories: ["food", "lifestyle"] },
+            { text: "Streamed a TV series", data: ["Entertainment preferences", "Binge-watching habits", "Genre interests"], categories: ["entertainment", "culture"] },
+            { text: "Played an online game", data: ["Gaming habits", "Competitive nature", "Problem-solving skills"], categories: ["gaming", "entertainment"] },
+            { text: "Spent time on campus", data: ["Academic involvement", "Location data", "Problem-solving skills"], categories: ["gaming", "entertainment"]},
+            { text: "Searched 'best hiking trails near me'", data: ["Local interest", "Interest in the outdoors", "Hobbies"], categories: ["travel", "adventure"]},
+            { text: "Used an online service for homework help", data: ["Academic involvement"], categories: ["education"]}
+        ];
+
+        const profiles = [
+            { name: "Tech Enthusiast", triggers: ["tech", "gaming"], description: "Keen interest in latest technology, likely to be an early adopter." },
+            { name: "Social Butterfly", triggers: ["social", "communication"], description: "Highly active on social platforms, influential among peers." },
+            { name: "Urban Professional", triggers: ["professional", "finance"], description: "Career-focused individual with a busy city lifestyle." },
+            { name: "Entertainment Junkie", triggers: ["entertainment", "culture"], description: "Avid consumer of various media, up-to-date with pop culture." },
+            { name: "Health-Conscious Consumer", triggers: ["food", "lifestyle"], description: "Prioritizes wellness and makes mindful consumer choices." },
+            { name: "Informed Citizen", triggers: ["news", "education"], description: "Keeps up with current events and values continuous learning." },
+            { name: "Savvy Shopper", triggers: ["shopping", "finance"], description: "Researches purchases thoroughly, looks for best deals." },
+            { name: "Traveler", triggers: ["travel", "culture", "adventure"], description: "Enthusiastic about exploring new places and experiences." },
+            { name: "College Student", triggers: ["education", "professional","social"], description: "Values education, social activity, and productivity."}
+        ];
+
+        const actionsList = document.getElementById('actionsList');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const resultsDiv = document.getElementById('results');
+        let selectedActions = [];
+
+        function renderActions() {
+            actionsList.innerHTML = actions.map((action, index) => `
+                <div class="action-item" data-index="${index}">
+                    <input type="checkbox" id="action-${index}" ${selectedActions.includes(index) ? 'checked' : ''}>
+                    <label for="action-${index}">${action.text}</label>
+                </div>
+            `).join('');
+
+            actionsList.querySelectorAll('.action-item').forEach(item => {
+                item.addEventListener('click', () => toggleAction(parseInt(item.dataset.index)));
+            });
+        }
+
+        function toggleAction(index) {
+            if (selectedActions.includes(index)) {
+                selectedActions = selectedActions.filter(i => i !== index);
+            } else if (selectedActions.length < 5) {
+                selectedActions.push(index);
+            }
+            renderActions();
+            analyzeBtn.disabled = selectedActions.length !== 5;
+        }
+
+        function analyzeActions() {
+            const collectedData = selectedActions.flatMap(index => actions[index].data);
+            const categories = selectedActions.flatMap(index => actions[index].categories);
+            const categoryFrequency = categories.reduce((acc, category) => {
+                acc[category] = (acc[category] || 0) + 1;
+                return acc;
+            }, {});
+
+            const matchedProfiles = profiles.filter(profile =>
+                profile.triggers.some(trigger => categoryFrequency[trigger] >= 2)
+            );
+
+            resultsDiv.innerHTML = `
+                <div class="result-section">
+                    <h2>Data That Could Be Mined</h2>
+                    <ul>${collectedData.map(item => `<li>${item}</li>`).join('')}</ul>
+                </div>
+                <div class="result-section">
+                    <h2>Potential User Profiles</h2>
+                    ${matchedProfiles.map(profile => `
+                        <h3>${profile.name}</h3>
+                        <p>${profile.description}</p>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        renderActions();
+        analyzeBtn.addEventListener('click', analyzeActions);
+    </script>
+</body>
+</html>
